@@ -7,11 +7,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
 // A Context describes daemon context.
 type Context struct {
+	// MarkValue stores the value of the environement variable _GO_DAEMON
+	// in the chld process
+	MarkValue string
 	// If PidFileName is non-empty, parent process will try to create and lock
 	// pid file with given name. Child process writes process id to file.
 	PidFileName string
@@ -53,7 +57,7 @@ type Context struct {
 }
 
 func (d *Context) reborn() (child *os.Process, err error) {
-	if !WasReborn() {
+	if !WasRebornWithValue(d.MarkValue) {
 		child, err = d.parent()
 	} else {
 		err = d.child()
@@ -178,9 +182,20 @@ func (d *Context) prepareEnv() (err error) {
 		d.Args = os.Args
 	}
 
-	mark := fmt.Sprintf("%s=%s", MARK_NAME, MARK_VALUE)
+	markValue := d.MarkValue
+	if markValue == "" {
+		markValue = MARK_VALUE
+	}
+
+	mark := fmt.Sprintf("%s=%s", MARK_NAME, markValue)
 	if len(d.Env) == 0 {
 		d.Env = os.Environ()
+	}
+	for i := range d.Env {
+		if strings.HasPrefix(d.Env[i], MARK_NAME+"=") {
+			d.Env = append(d.Env[:i], d.Env[i+1:]...)
+			break
+		}
 	}
 	d.Env = append(d.Env, mark)
 

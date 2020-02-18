@@ -21,6 +21,13 @@ func WasReborn() bool {
 	return os.Getenv(MARK_NAME) == MARK_VALUE
 }
 
+func WasRebornWithValue(value string) bool {
+	if value == "" {
+		return WasReborn()
+	}
+	return os.Getenv(MARK_NAME) == value
+}
+
 // Reborn runs second copy of current process in the given context.
 // function executes separate parts of code in child process and parent process
 // and provides demonization of child process. It look similar as the
